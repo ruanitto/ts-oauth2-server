@@ -7,7 +7,7 @@ import { ENV } from "~/config/environments";
 import { graphqlConfig } from "~/config/graphql";
 import { LoggerModule } from "~/lib/logger/logger.module";
 import { JwtModule } from "~/lib/jwt/jwt.module";
-import { UserModule } from "~/app/user/user.module";
+// import { UserModule } from "~/app/user/user.module";
 import { OAuthModule } from "~/app/oauth/oauth.module";
 
 @Module({
@@ -15,7 +15,7 @@ import { OAuthModule } from "~/app/oauth/oauth.module";
     ...(ENV.isProduction ? [] : [QueueWorkerModule]),
 
     OAuthModule,
-    UserModule,
+    // UserModule,
 
     JwtModule,
     LoggerModule,

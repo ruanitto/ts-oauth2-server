@@ -1,22 +1,27 @@
-import { OAuthAuthCodeRepository } from "@jmondi/oauth2-server";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Prisma } from "@prisma/client";
 
-import { AuthCode } from "~/app/oauth/entities/auth_code.entity";
-import { Client } from "~/app/oauth/entities/client.entity";
-import { Scope } from "~/app/oauth/entities/scope.entity";
-import { User } from "~/app/user/entities/user.entity";
-import { BaseRepo } from "~/app/database/base.repository";
+import { DateInterval, OAuthAuthCode, OAuthAuthCodeRepository } from "../../../../../../src";
 
-@Injectable()
-export class AuthCodeRepo extends BaseRepo<AuthCode> implements OAuthAuthCodeRepository {
-  constructor(@InjectRepository(AuthCode) repository: Repository<AuthCode>) {
-    super(repository);
-  }
+import { AuthCode } from "~/entities/oauth/auth_code";
+import { User } from "~/entities/user.entity";
+import { Client } from "~/entities/oauth/client";
+import { generateRandomToken } from "~/lib/utils/random_token";
+import { Scope } from "~/entities/oauth/scope";
 
-  getByIdentifier(authCodeCode: string): Promise<AuthCode> {
-    return this.findById(authCodeCode);
+export class AuthCodeRepository implements OAuthAuthCodeRepository {
+  constructor(private readonly repo: Prisma.OAuthAuthCodeDelegate<"rejectOnNotFound">) {}
+
+  async getByIdentifier(authCodeCode: string): Promise<AuthCode> {
+    const entity = await this.repo.findUnique({
+      rejectOnNotFound: true,
+      where: {
+        code: authCodeCode,
+      },
+      include: {
+        client: true,
+      },
+    });
+    return new AuthCode(entity);
   }
 
   async isRevoked(authCodeCode: string): Promise<boolean> {
@@ -24,19 +29,31 @@ export class AuthCodeRepo extends BaseRepo<AuthCode> implements OAuthAuthCodeRep
     return authCode.isExpired;
   }
 
-  issueAuthCode(client: Client, user: User | undefined, scopes: Scope[]) {
-    const authCode = new AuthCode({ user, client });
-    scopes.forEach((scope) => (authCode.scopes ? authCode.scopes.push(scope) : (authCode.scopes = [scope])));
-    return authCode;
+  issueAuthCode(client: Client, user: User | undefined, scopes: Scope[]): OAuthAuthCode {
+    return new AuthCode({
+      redirectUri: null,
+      code: generateRandomToken(),
+      codeChallenge: null,
+      codeChallengeMethod: "s256",
+      expiresAt: new DateInterval("15m").getEndDate(),
+      client,
+      clientId: client.id,
+      user,
+      userId: user?.id ?? null,
+      scopes,
+    });
   }
 
-  async persist(authCode: AuthCode): Promise<void> {
-    await this.create(authCode);
+  async persist({ user, client, scopes, ...authCode }: AuthCode): Promise<void> {
+    await this.repo.create({ data: authCode });
   }
 
   async revoke(authCodeCode: string): Promise<void> {
-    const authCode = await this.getByIdentifier(authCodeCode);
-    authCode.revoke();
-    await this.save(authCode);
+    await this.repo.update({
+      where: { code: authCodeCode },
+      data: {
+        expiresAt: new Date(0),
+      },
+    });
   }
 }

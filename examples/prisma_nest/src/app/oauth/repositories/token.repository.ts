@@ -1,69 +1,96 @@
-import { DateInterval, OAuthTokenRepository } from "@jmondi/oauth2-server";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Prisma } from "@prisma/client";
+import { DateInterval, OAuthTokenRepository } from "../../../../src";
+import { Client } from "../entities/client";
+import { Scope } from "../entities/scope";
+import { Token } from "../entities/token";
+import { User } from "../entities/user";
+import { generateRandomToken } from "../utils/utils";
 
-import { Client } from "~/app/oauth/entities/client.entity";
-import { Scope } from "~/app/oauth/entities/scope.entity";
-import { Token } from "~/app/oauth/entities/token.entity";
-import { ENV } from "~/config/configuration";
-import { User } from "~/app/user/entities/user.entity";
-import { generateRandomToken } from "~/lib/utils/random_token";
-import { BaseRepo } from "~/app/database/base.repository";
+export class TokenRepository implements OAuthTokenRepository {
+  constructor(private readonly repo: Prisma.OAuthTokenDelegate<"rejectOnNotFound">) {}
 
-@Injectable()
-export class TokenRepo extends BaseRepo<Token> implements OAuthTokenRepository {
-  constructor(@InjectRepository(Token) repository: Repository<Token>) {
-    super(repository);
-  }
-
-  async findById(id: string): Promise<Token> {
-    return super.findById(id, {
-      join: {
-        alias: "token",
-        leftJoinAndSelect: {
-          user: "token.user",
-        },
+  async findById(accessToken: string): Promise<Token> {
+    const token = await this.repo.findUnique({
+      rejectOnNotFound: true,
+      where: {
+        accessToken,
+      },
+      include: {
+        user: true,
+        client: true,
+        scopes: true,
       },
     });
+    return new Token(token);
   }
 
   async issueToken(client: Client, scopes: Scope[], user?: User): Promise<Token> {
-    const accessToken = new Token({ client });
-    accessToken.user = user;
-    accessToken.userId = user?.id;
-    scopes.forEach((scope) => {
-      if (accessToken.scopes) {
-        accessToken.scopes.push(scope);
-      } else {
-        accessToken.scopes = [scope];
-      }
+    return new Token({
+      accessToken: generateRandomToken(),
+      accessTokenExpiresAt: new DateInterval("2h").getEndDate(),
+      refreshToken: null,
+      refreshTokenExpiresAt: null,
+      client,
+      clientId: client.id,
+      user: user,
+      userId: user?.id ?? null,
+      scopes,
     });
-    return accessToken;
   }
 
-  async getByRefreshToken(refreshTokenToken: string): Promise<Token> {
-    return this.findOneBy({ refreshToken: refreshTokenToken });
+  async getByRefreshToken(refreshToken: string): Promise<Token> {
+    const token = await this.repo.findUnique({
+      rejectOnNotFound: true,
+      where: { refreshToken },
+      include: {
+        client: true,
+        scopes: true,
+        user: true,
+      },
+    });
+    return new Token(token);
   }
 
   async isRefreshTokenRevoked(token: Token): Promise<boolean> {
     return Date.now() > (token.refreshTokenExpiresAt?.getTime() ?? 0);
   }
 
-  async issueRefreshToken(accessToken: Token): Promise<Token> {
-    accessToken.refreshToken = generateRandomToken();
-    accessToken.refreshTokenExpiresAt = new DateInterval(
-      ENV.oauth.authorizationServer.refreshTokenDuration,
-    ).getEndDate();
-    return await this.save(accessToken);
+  async issueRefreshToken(token: Token): Promise<Token> {
+    token.refreshToken = generateRandomToken();
+    token.refreshTokenExpiresAt = new DateInterval("2h").getEndDate();
+    await this.repo.update({
+      where: {
+        accessToken: token.accessToken,
+      },
+      data: {
+        refreshToken: token.refreshToken,
+        refreshTokenExpiresAt: token.refreshTokenExpiresAt,
+      },
+    });
+    return token;
   }
 
-  async persist(accessToken: Token): Promise<void> {
-    await this.save(accessToken);
+  async persist({ user, client, scopes, ...token }: Token): Promise<void> {
+    await this.repo.upsert({
+      where: {
+        accessToken: token.accessToken,
+      },
+      update: {},
+      create: token,
+    });
   }
 
   async revoke(accessToken: Token): Promise<void> {
     accessToken.revoke();
-    await this.save(accessToken);
+    await this.update(accessToken);
+  }
+
+  private async update({ user, client, scopes, ...token }: Token): Promise<void> {
+    await this.repo.update({
+      where: {
+        accessToken: token.accessToken,
+      },
+      data: token,
+    });
   }
 }

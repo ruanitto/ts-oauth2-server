@@ -26,7 +26,6 @@ const ENV = {
     api: new URL(process.env.API_URL ?? process.env.URL!),
   },
   secrets: {
-    salt: process.env.SALT!,
     jwt: process.env.JWT_SECRET!,
     cookie: process.env.COOKIE_SECRET!,
   },
@@ -43,24 +42,6 @@ const ENV = {
     forgotPasswordToken: ms("30m"),
     emailConfirmationToken: ms("30d"),
   },
-  oauth: {
-    google: {
-      clientId: process.env.OAUTH_GOOGLE_ID,
-      clientSecret: process.env.OAUTH_GOOGLE_SECRET,
-      callbackURL: "https://scratchy.localdomain/api/oauth2/google/callback",
-    },
-    github: {
-      clientId: process.env.OAUTH_GITHUB_ID,
-      clientSecret: process.env.OAUTH_GITHUB_SECRET,
-      callbackURL: "https://scratchy.localdomain/api/oauth2/github/callback",
-    },
-  },
-  // aws: {
-  //   host: process.env.AWS_S3_HOST!,
-  //   bucket: process.env.AWS_S3_BUCKET!,
-  //   accessKey: process.env.AWS_S3_ACCESS_KEY!,
-  //   secretKey: process.env.AWS_S3_SECRET_KEY!,
-  // },
   mailer: {
     from: `"graphql-scratchy" <jason+scratchy@raimondi.us>`,
   },

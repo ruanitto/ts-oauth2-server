@@ -5,6 +5,9 @@
   "author": "Jason Raimondi <jason@raimondi.us>",
   "private": true,
   "license": "UNLICENSED",
+  "workspaces": [
+    "../../"
+  ],
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build --config tsconfig.build.json",

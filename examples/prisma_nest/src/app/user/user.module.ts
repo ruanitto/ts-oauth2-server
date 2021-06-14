@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 
 import { MeResolver } from "~/app/user/users/me.resolver";
-import { UserResolver } from "~/app/user/users/user.resolver";
 import { RegisterResolver } from "~/app/user/register/register.resolver";
 import { ForgotPasswordService } from "~/app/user/forgot_password/forgot_password.service";
 import { ForgotPasswordResolver } from "~/app/user/forgot_password/forgot_password.resolver";
@@ -28,7 +27,6 @@ import { UpdatePasswordResolver } from "~/app/user/update_password/update_passwo
     MeResolver,
     RegisterResolver,
     UpdatePasswordResolver,
-    UserResolver,
   ],
 })
 export class UserModule {}

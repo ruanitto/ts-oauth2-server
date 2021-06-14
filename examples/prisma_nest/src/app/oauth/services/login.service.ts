@@ -1,28 +1,25 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
-import type { Response } from "express";
+import type { FastifyReply } from "fastify";
 
-import { ClientRepo } from "~/app/oauth/repositories/client.repository";
-import { OAuthUserRepo } from "~/app/oauth/repositories/oauth_user.repository";
-import { ScopeRepo } from "~/app/oauth/repositories/scope.repository";
+import { ClientRepository } from "~/app/oauth/repositories/client.repository";
 import { AuthorizationServer } from "~/app/oauth/services/authorization_server.service";
-import { ENV } from "~/config/configuration";
-import { User } from "~/app/user/entities/user.entity";
-import { API_ROUTES } from "~/config/routes";
-import { MyJwtService } from "~/app/jwt/jwt.service";
-import { DateInterval } from "@jmondi/oauth2-server";
-import { COOKIES } from "~/config/cookies";
+import { User } from "~/entities/user.entity";
+import { MyJwtService } from "~/lib/jwt/jwt.service";
+import { ENV } from "~/config/environments";
+import { ScopeRepository } from "~/app/oauth/repositories/scope.repository";
+import { UserRepository } from "~/lib/database/repositories/user.repository";
 
 @Injectable()
 export class LoginService {
   constructor(
-    private readonly clientRepo: ClientRepo,
-    private readonly scopeRepo: ScopeRepo,
-    private readonly userRepository: OAuthUserRepo,
+    private readonly clientRepo: ClientRepository,
+    private readonly scopeRepo: ScopeRepository,
+    private readonly userRepository: UserRepository,
     private readonly oauth: AuthorizationServer,
     private readonly jwt: MyJwtService,
   ) {}
 
-  async loginAndRedirect(user: User, ipAddr: string, res: Response, query: string) {
+  async loginAndRedirect(user: User, ipAddr: string, res: FastifyReply, query: string) {
     await this.userRepository.incrementLastLogin(user, ipAddr);
 
     const jwt = await this.jwt.sign({

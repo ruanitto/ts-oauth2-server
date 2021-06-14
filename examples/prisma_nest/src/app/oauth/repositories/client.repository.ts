@@ -1,26 +1,29 @@
-import { GrantIdentifier, OAuthClientRepository } from "@jmondi/oauth2-server";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Prisma } from "@prisma/client";
 
-import { Client } from "~/app/oauth/entities/client.entity";
-import { BaseRepo } from "~/app/database/base.repository";
+import { GrantIdentifier, OAuthClient, OAuthClientRepository } from "../../../../src";
+import { Client } from "../entities/client";
 
-@Injectable()
-export class ClientRepo extends BaseRepo<Client> implements OAuthClientRepository {
-  constructor(@InjectRepository(Client) repository: Repository<Client>) {
-    super(repository);
-  }
+export class ClientRepository implements OAuthClientRepository {
+  constructor(private readonly repo: Prisma.OAuthClientDelegate<"rejectOnNotFound">) {}
 
   async getByIdentifier(clientId: string): Promise<Client> {
-    const client = await this.findById(clientId);
-    return client;
+    return new Client(
+      await this.repo.findUnique({
+        rejectOnNotFound: true,
+        where: {
+          id: clientId,
+        },
+        include: {
+          scopes: true,
+        },
+      }),
+    );
   }
 
-  async isClientValid(grantType: GrantIdentifier, client: Client, clientSecret?: string): Promise<boolean> {
-    // if (client.secret !== clientSecret) {
-    //   return false;
-    // }
+  async isClientValid(grantType: GrantIdentifier, client: OAuthClient, clientSecret?: string): Promise<boolean> {
+    if (client.secret && client.secret !== clientSecret) {
+      return false;
+    }
     return client.allowedGrants.includes(grantType);
   }
 }

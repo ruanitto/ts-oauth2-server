@@ -1,9 +1,19 @@
 import type { CookieOptions, Response } from "express";
-import { AuthCodeRepo } from "~/app/oauth/repositories/auth_code.repository";
-import { ClientRepo } from "~/app/oauth/repositories/client.repository";
-import { OAuthUserRepo } from "~/app/oauth/repositories/oauth_user.repository";
-import { ScopeRepo } from "~/app/oauth/repositories/scope.repository";
-import { TokenRepo } from "~/app/oauth/repositories/token.repository";
+
+import {
+  AuthorizationServer as JmondiAuthorizationServer,
+  AuthorizationServerOptions,
+  DateInterval,
+  OAuthException,
+} from "../../../../../../src";
+
+import { ENV } from "../../../config/environments";
+import { MyJwtService } from "../../../lib/jwt/jwt.service";
+import { AuthCodeRepository } from "../repositories/auth_code.repository";
+import { ClientRepository } from "../repositories/client.repository";
+import { TokenRepository } from "../repositories/token.repository";
+import { ScopeRepository } from "../repositories/scope.repository";
+import { UserRepository } from "../repositories/user.repository";
 
 type CustomCookieOptions = { cookieTTL?: DateInterval } & CookieOptions;
 
@@ -21,9 +31,7 @@ export class AuthorizationServer extends JmondiAuthorizationServer {
   }
 
   get domain(): string {
-    let domain = ENV.domain!;
-    if (domain.includes(":")) domain = domain.split(":")[0];
-    return domain;
+    return ENV.urls.web.hostname;
   }
 
   cookieOptions({ cookieTTL, ...extraParams }: CustomCookieOptions = {}): CookieOptions {
@@ -40,14 +48,14 @@ export class AuthorizationServer extends JmondiAuthorizationServer {
     return {
       provide: AuthorizationServer,
       useFactory: (
-        authCodeRepo: AuthCodeRepo,
-        clientRepo: ClientRepo,
-        tokenRepo: TokenRepo,
-        scopeRepo: ScopeRepo,
-        userRepo: OAuthUserRepo,
+        authCodeRepo: AuthCodeRepository,
+        clientRepo: ClientRepository,
+        tokenRepo: TokenRepository,
+        scopeRepo: ScopeRepository,
+        userRepo: UserRepository,
         jwt: MyJwtService,
       ) => new AuthorizationServer(authCodeRepo, clientRepo, tokenRepo, scopeRepo, userRepo, jwt, options),
-      inject: [AuthCodeRepo, ClientRepo, TokenRepo, ScopeRepo, OAuthUserRepo, MyJwtService],
+      inject: [AuthCodeRepository, ClientRepository, TokenRepository, ScopeRepository, UserRepository, MyJwtService],
     };
   }
 }

@@ -1,21 +1,21 @@
-import { AuthorizationRequest, base64encode, DateInterval, OAuthRequest } from "@jmondi/oauth2-server";
 import { Controller, Get, Req, Res } from "@nestjs/common";
 import { Request, Response } from "express";
 import querystring from "querystring";
+
+import { AuthorizationRequest, base64encode, OAuthRequest } from "../../../../../../src";
+
 import { AuthorizationCookie } from "~/app/oauth/controllers/scopes.controller";
 import { AuthorizationServer } from "~/app/oauth/services/authorization_server.service";
-import { User } from "~/app/user/entities/user.entity";
-import { LoggerService } from "~/app/logger/logger.service";
-import { UserRepo } from "~/app/user/repositories/repositories/user.repository";
-import { API_ROUTES } from "~/config/routes";
-import { MyJwtService } from "~/app/jwt/jwt.service";
-import { COOKIES } from "~/config/cookies";
+import { UserRepository } from "~/app/oauth/repositories/user.repository";
+import { User } from "~/entities/user.entity";
+import { MyJwtService } from "~/lib/jwt/jwt.service";
+import { LoggerService } from "~/lib/logger/logger.service";
 
 @Controller("oauth2/authorize")
 export class AuthorizeController {
   constructor(
     private readonly oauth: AuthorizationServer,
-    private readonly userRepository: UserRepo,
+    private readonly userRepository: UserRepository,
     private readonly jwt: MyJwtService,
     private readonly logger: LoggerService,
   ) {

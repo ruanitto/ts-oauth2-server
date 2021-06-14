@@ -7,7 +7,7 @@ services:
       MYSQL_ROOT_PASSWORD: example
       MYSQL_USER: example
       MYSQL_PASSWORD: example
-      MYSQL_DATABASE: example
+      MYSQL_DATABASE: exampledb
     ports:
       - 3306:3306
     volumes:
@@ -16,7 +16,7 @@ services:
   postgres:
     image: postgres
     environment:
-      POSTGRES_DB: example
+      POSTGRES_DB: exampledb
       POSTGRES_USER: example
       POSTGRES_PASSWORD: example
       TZ: UTC

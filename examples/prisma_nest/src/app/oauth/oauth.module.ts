@@ -11,6 +11,7 @@ import { AuthorizeController } from "~/app/oauth/controllers/authorize.controlle
 import { LogoutController } from "~/app/oauth/controllers/logout.controller";
 import { ScopesController } from "~/app/oauth/controllers/scopes.controller";
 import { LoginService } from "~/app/oauth/services/login.service";
+import { JwtModule } from "~/lib/jwt/jwt.module";
 
 @Module({
   controllers: [
@@ -21,6 +22,7 @@ import { LoginService } from "~/app/oauth/services/login.service";
     TokenController,
   ],
   imports: [DatabaseModule, LoggerModule, JwtModule],
+
   providers: [...strategies, ...repositories, LoginService, AuthorizationServer.register()],
 })
 export class OAuthModule {
@@ -28,7 +30,6 @@ export class OAuthModule {
     this.oauth.enableGrantType("client_credentials");
     this.oauth.enableGrantType("authorization_code");
     this.oauth.enableGrantType("refresh_token");
-    this.oauth.enableGrantType("password");
   }
 
   configure(consumer: MiddlewareConsumer) {
